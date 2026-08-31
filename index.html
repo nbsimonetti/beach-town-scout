@@ -10,38 +10,42 @@
 <style>
 :root{
   color-scheme: light;
-  --surface-1:#fcfcfb; --page:#f9f9f7;
-  --text-1:#0b0b0b; --text-2:#52514e; --muted:#898781;
-  --grid:#e1e0d9; --axis:#c3c2b7; --border:rgba(11,11,11,0.10);
-  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a;
-  --seq-100:#cde2fb; --seq-250:#86b6ef; --seq-400:#3987e5; --seq-550:#1c5cab; --seq-700:#0d366b;
-  --good:#0ca30c; --warn:#fab219; --serious:#ec835a; --crit:#d03b3b; --good-text:#006300;
-  --areawash:rgba(42,120,214,0.10);
+  /* Beach theme — light: shell & sand surfaces, ocean-blue primary, coral accent, seafoam support.
+     Palette validated with dataviz validate_palette.js (light surface #fdfaf3 / dark #12202a). */
+  --surface-1:#fdfaf3; --page:#f6efe0;
+  --text-1:#2b2620; --text-2:#5d5546; --muted:#8f8574;
+  --grid:#e9e0cb; --axis:#cfc3a9; --border:rgba(43,38,32,0.12);
+  --s1:#1173b5; --s2:#e46a4f; --s3:#17997a;
+  --seq-100:#cfe7f5; --seq-250:#8cc3e4; --seq-400:#3a95cd; --seq-550:#16628f; --seq-700:#0b3e5e;
+  --good:#0ca30c; --warn:#fab219; --serious:#ec835a; --crit:#d03b3b; --good-text:#0a7a44;
+  --areawash:rgba(17,115,181,0.09);
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
     color-scheme: dark;
-    --surface-1:#1a1a19; --page:#0d0d0d;
-    --text-1:#ffffff; --text-2:#c3c2b7; --muted:#898781;
-    --grid:#2c2c2a; --axis:#383835; --border:rgba(255,255,255,0.10);
-    --s1:#3987e5; --s2:#d95926; --s3:#199e70;
-    --seq-100:#0d366b; --seq-250:#1c5cab; --seq-400:#256abf; --seq-550:#5598e7; --seq-700:#9ec5f4;
-    --good-text:#0ca30c;
-    --areawash:rgba(57,135,229,0.12);
+    /* Beach theme — dark: deep-sea night with sand-white ink */
+    --surface-1:#12202a; --page:#0a1116;
+    --text-1:#f5efe3; --text-2:#c9c0ae; --muted:#8d9186;
+    --grid:#223440; --axis:#2c4050; --border:rgba(245,239,227,0.12);
+    --s1:#3391cc; --s2:#df6647; --s3:#1fa078;
+    --seq-100:#0b3e5e; --seq-250:#16628f; --seq-400:#3a95cd; --seq-550:#8cc3e4; --seq-700:#cfe7f5;
+    --good-text:#35b18a;
+    --areawash:rgba(51,145,204,0.14);
   }
 }
 [data-theme="dark"]{
   color-scheme: dark;
-  --surface-1:#1a1a19; --page:#0d0d0d;
-  --text-1:#ffffff; --text-2:#c3c2b7; --muted:#898781;
-  --grid:#2c2c2a; --axis:#383835; --border:rgba(255,255,255,0.10);
-  --s1:#3987e5; --s2:#d95926; --s3:#199e70;
-  --seq-100:#0d366b; --seq-250:#1c5cab; --seq-400:#256abf; --seq-550:#5598e7; --seq-700:#9ec5f4;
-  --good-text:#0ca30c;
-  --areawash:rgba(57,135,229,0.12);
+  --surface-1:#12202a; --page:#0a1116;
+  --text-1:#f5efe3; --text-2:#c9c0ae; --muted:#8d9186;
+  --grid:#223440; --axis:#2c4050; --border:rgba(245,239,227,0.12);
+  --s1:#3391cc; --s2:#df6647; --s3:#1fa078;
+  --seq-100:#0b3e5e; --seq-250:#16628f; --seq-400:#3a95cd; --seq-550:#8cc3e4; --seq-700:#cfe7f5;
+  --good-text:#35b18a;
+  --areawash:rgba(51,145,204,0.14);
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--page);color:var(--text-1);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.55}
+body::before{content:"";display:block;height:4px;background:linear-gradient(90deg,#0b3e5e 0%,#16628f 25%,#3a95cd 50%,#8cc3e4 68%,#e46a4f 84%,#f0d9a8 100%)}
 .wrap{max-width:1240px;margin:0 auto;padding:0 20px 80px}
 header.hero{padding:44px 0 10px}
 .hero h1{font-size:clamp(26px,4vw,38px);letter-spacing:-.02em}
@@ -167,11 +171,11 @@ footer{margin-top:60px;color:var(--muted);font-size:12.5px;border-top:1px solid 
   <p class="sechint">Every screened town, colored by weighted composite tier. Click a marker for scores, prices, and the one-line bull/bear. Orange rings mark the historical boom benchmarks the model was trained on.</p>
   <div id="map"></div>
   <div class="maplegend">
-    <span><span class="sw" style="background:#0d366b"></span>Tier 1 (score ≥ 70)</span>
-    <span><span class="sw" style="background:#1c5cab"></span>Tier 2 (64–70)</span>
-    <span><span class="sw" style="background:#3987e5"></span>Tier 3 (56–64)</span>
-    <span><span class="sw" style="background:#9ec5f4"></span>Tier 4 (&lt; 56)</span>
-    <span><span class="sw" style="background:transparent;box-shadow:0 0 0 2px #eb6834"></span>Boom benchmark</span>
+    <span><span class="sw" style="background:#0b3e5e"></span>Tier 1 (score ≥ 70)</span>
+    <span><span class="sw" style="background:#16628f"></span>Tier 2 (64–70)</span>
+    <span><span class="sw" style="background:#3a95cd"></span>Tier 3 (56–64)</span>
+    <span><span class="sw" style="background:#8cc3e4"></span>Tier 4 (&lt; 56)</span>
+    <span><span class="sw" style="background:transparent;box-shadow:0 0 0 2px #e46a4f"></span>Boom benchmark</span>
   </div>
 </section>
 
@@ -536,13 +540,13 @@ const TOP10 = new Set(RANKED.slice(0,10).map(t=>t.name));
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 18, attribution: '&copy; OpenStreetMap contributors'
   }).addTo(map);
-  const tierColor = w => w>=70 ? '#0d366b' : w>=64 ? '#1c5cab' : w>=56 ? '#3987e5' : '#9ec5f4';
+  const tierColor = w => w>=70 ? '#0b3e5e' : w>=64 ? '#16628f' : w>=56 ? '#3a95cd' : '#8cc3e4';
   TOWNS.forEach(t=>{
     const w=Math.round(W(t)), pb=pBand(t);
     const isB=!!t.benchmark;
     const mk = L.circleMarker([t.lat,t.lng], {
       radius: isB ? 8 : 7,
-      color: isB ? '#eb6834' : '#ffffff',
+      color: isB ? '#e46a4f' : '#ffffff',
       weight: 2,
       fillColor: isB ? 'transparent' : tierColor(w),
       fillOpacity: isB ? 0 : 0.95
