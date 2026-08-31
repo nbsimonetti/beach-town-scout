@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Beach Town Scout</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏖️</text></svg>">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<style>
+:root{
+  color-scheme: light;
+  --surface-1:#fcfcfb; --page:#f9f9f7;
+  --text-1:#0b0b0b; --text-2:#52514e; --muted:#898781;
+  --grid:#e1e0d9; --axis:#c3c2b7; --border:rgba(11,11,11,0.10);
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a;
+  --seq-100:#cde2fb; --seq-250:#86b6ef; --seq-400:#3987e5; --seq-550:#1c5cab; --seq-700:#0d366b;
+  --good:#0ca30c; --warn:#fab219; --serious:#ec835a; --crit:#d03b3b; --good-text:#006300;
+  --areawash:rgba(42,120,214,0.10);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --surface-1:#1a1a19; --page:#0d0d0d;
+    --text-1:#ffffff; --text-2:#c3c2b7; --muted:#898781;
+    --grid:#2c2c2a; --axis:#383835; --border:rgba(255,255,255,0.10);
+    --s1:#3987e5; --s2:#d95926; --s3:#199e70;
+    --seq-100:#0d366b; --seq-250:#1c5cab; --seq-400:#256abf; --seq-550:#5598e7; --seq-700:#9ec5f4;
+    --good-text:#0ca30c;
+    --areawash:rgba(57,135,229,0.12);
+  }
+}
+[data-theme="dark"]{
+  color-scheme: dark;
+  --surface-1:#1a1a19; --page:#0d0d0d;
+  --text-1:#ffffff; --text-2:#c3c2b7; --muted:#898781;
+  --grid:#2c2c2a; --axis:#383835; --border:rgba(255,255,255,0.10);
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70;
+  --seq-100:#0d366b; --seq-250:#1c5cab; --seq-400:#256abf; --seq-550:#5598e7; --seq-700:#9ec5f4;
+  --good-text:#0ca30c;
+  --areawash:rgba(57,135,229,0.12);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--page);color:var(--text-1);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.55}
+.wrap{max-width:1240px;margin:0 auto;padding:0 20px 80px}
+header.hero{padding:44px 0 10px}
+.hero h1{font-size:clamp(26px,4vw,38px);letter-spacing:-.02em}
+.hero .sub{color:var(--text-2);max-width:860px;margin-top:8px;font-size:15px}
+.hero .stamp{color:var(--muted);font-size:12.5px;margin-top:10px}
+nav.toc{position:sticky;top:0;z-index:1200;background:var(--page);border-bottom:1px solid var(--grid);margin:22px -20px 0;padding:10px 20px;display:flex;gap:6px;flex-wrap:wrap}
+nav.toc a{color:var(--text-2);text-decoration:none;font-size:13px;padding:5px 11px;border-radius:99px;border:1px solid transparent}
+nav.toc a:hover{background:var(--surface-1);border-color:var(--border);color:var(--text-1)}
+section{margin-top:44px;scroll-margin-top:108px}
+h2{font-size:21px;letter-spacing:-.01em;margin-bottom:4px}
+.sechint{color:var(--text-2);font-size:13.5px;margin-bottom:18px;max-width:880px}
+.card{background:var(--surface-1);border:1px solid var(--border);border-radius:12px;padding:18px 20px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-top:22px}
+.tile{background:var(--surface-1);border:1px solid var(--border);border-radius:12px;padding:14px 16px}
+.tile .lbl{font-size:12.5px;color:var(--text-2)}
+.tile .val{font-size:27px;font-weight:600;margin-top:2px}
+.tile .note{font-size:12px;color:var(--muted);margin-top:2px}
+.picksgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}
+.pick{background:var(--surface-1);border:1px solid var(--border);border-radius:12px;padding:16px 18px;display:flex;flex-direction:column;gap:8px}
+.pick .rank{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.pick h3{font-size:16.5px}
+.pick .region{color:var(--text-2);font-size:12.5px}
+.pick .thesis{font-size:13.5px;color:var(--text-2)}
+.pick .scorebar{height:6px;border-radius:3px;background:var(--grid);overflow:hidden;margin-top:2px}
+.pick .scorebar i{display:block;height:100%;border-radius:3px;background:var(--s1)}
+.pick .meta{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--text-2)}
+.pick .meta b{color:var(--text-1);font-weight:600}
+.badge{display:inline-block;font-size:11px;font-weight:600;padding:2px 9px;border-radius:99px;border:1px solid var(--border);color:var(--text-2)}
+.badge.hi{color:var(--good-text);border-color:var(--good-text)}
+.badge.el{color:var(--s1);border-color:var(--s1)}
+.chartcard{background:var(--surface-1);border:1px solid var(--border);border-radius:12px;padding:18px 8px 10px;overflow-x:auto}
+.chartcard h3{font-size:15px;padding:0 12px}
+.chartcard .hint{font-size:12.5px;color:var(--text-2);padding:0 12px;margin-top:2px}
+.legendrow{display:flex;gap:16px;flex-wrap:wrap;padding:8px 12px 2px;font-size:12.5px;color:var(--text-2)}
+.legendrow .k{display:inline-flex;align-items:center;gap:6px}
+.legendrow .sw{width:10px;height:10px;border-radius:50%;display:inline-block}
+#map{height:560px;border-radius:12px;border:1px solid var(--border)}
+.maplegend{display:flex;gap:16px;flex-wrap:wrap;margin-top:10px;font-size:12.5px;color:var(--text-2)}
+.maplegend .sw{width:12px;height:12px;border-radius:50%;display:inline-block;margin-right:5px;vertical-align:-1px;border:2px solid var(--surface-1);box-shadow:0 0 0 1px var(--border)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--grid);vertical-align:middle}
+th{color:var(--text-2);font-weight:600;font-size:12px;cursor:pointer;user-select:none;white-space:nowrap;position:sticky;top:46px;background:var(--surface-1)}
+th .arr{color:var(--muted);font-size:10px}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+tr:hover td{background:var(--areawash)}
+.minibar{display:inline-block;width:56px;height:5px;border-radius:3px;background:var(--grid);vertical-align:middle;margin-left:7px;overflow:hidden}
+.minibar i{display:block;height:100%;background:var(--seq-400)}
+.tablewrap{overflow-x:auto;border-radius:12px;border:1px solid var(--border);background:var(--surface-1);padding:0 6px}
+.pill{font-size:11px;font-weight:600;padding:2px 8px;border-radius:99px;white-space:nowrap}
+.pill.p-hi{background:var(--areawash);color:var(--good-text)}
+.pill.p-el{background:var(--areawash);color:var(--s1)}
+.pill.p-mo{background:var(--areawash);color:var(--text-2)}
+.pill.p-lo{background:transparent;color:var(--muted);border:1px solid var(--grid)}
+.cols2{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:14px}
+.deep{background:var(--surface-1);border:1px solid var(--border);border-radius:12px;padding:16px 18px}
+.deep h3{font-size:16px}
+.deep .region{color:var(--text-2);font-size:12.5px;margin-bottom:8px}
+.deep p{font-size:13.5px;color:var(--text-2);margin-top:7px}
+.deep p b{color:var(--text-1)}
+.deep .bb{margin-top:9px;font-size:13px}
+.deep .bb .bull{color:var(--good-text)}
+.deep .bb .bear{color:var(--crit)}
+.indic{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:10px;margin-top:14px}
+.indic .it{background:var(--surface-1);border:1px solid var(--border);border-radius:10px;padding:12px 14px;font-size:13px}
+.indic .it b{display:block;margin-bottom:2px}
+.indic .it span{color:var(--text-2);font-size:12.5px}
+.meth p{font-size:14px;color:var(--text-2);margin-top:10px;max-width:900px}
+.meth p b{color:var(--text-1)}
+.meth ul{margin:10px 0 0 20px;font-size:13.5px;color:var(--text-2);max-width:880px}
+.meth li{margin-top:5px}
+.formula{font-family:ui-monospace,Consolas,monospace;font-size:13px;background:var(--surface-1);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-top:10px;overflow-x:auto;white-space:nowrap}
+.caveat{border-left:3px solid var(--warn);padding:10px 14px;background:var(--surface-1);border-radius:0 10px 10px 0;margin-top:16px;font-size:13px;color:var(--text-2);max-width:900px}
+footer{margin-top:60px;color:var(--muted);font-size:12.5px;border-top:1px solid var(--grid);padding-top:16px}
+.leaflet-popup-content{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;font-size:12.5px;line-height:1.45}
+.leaflet-popup-content b{font-size:13.5px}
+@media (max-width:640px){ #map{height:420px} th{top:0} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <h1>🏖️ Beach Town Scout</h1>
+  <p class="sub">A research screen for the <b>next 30A / next Outer Banks</b>: under-the-radar beachfront towns that work as an easy vacation home from <b>Dallas, TX</b> and carry high appreciation potential. Built from the pre-boom fingerprints of 30A, OBX, Hilton Head, Gulf Shores, Port Aransas, and Cape San Blas, then applied to 55+ candidate towns across the US Gulf, Atlantic, Pacific, Mexico, and the Caribbean.</p>
+  <p class="stamp">Research date: August 2026 · Five parallel research agents · ~250 cited sources (see /research) · Not investment advice</p>
+</header>
+
+<nav class="toc">
+  <a href="#picks">Top Picks</a>
+  <a href="#chart">Access × Upside</a>
+  <a href="#map-section">Map</a>
+  <a href="#rankings">Rankings</a>
+  <a href="#playbook">Boom Playbook</a>
+  <a href="#deep">Deep Dives</a>
+  <a href="#method">Methodology &amp; Probability</a>
+</nav>
+
+<div class="tiles" id="tiles"></div>
+
+<section id="picks">
+  <h2>Top picks</h2>
+  <p class="sechint">Ranked by the weighted composite (Dallas access 25% · catalysts 25% · momentum 20% · value 15% · risk 15%). The five below span the risk spectrum — from a drivable US value town to an international torque play. Probability = modeled chance of ≥7%/yr nominal appreciation over the next decade (see methodology).</p>
+  <div class="picksgrid" id="picksgrid"></div>
+</section>
+
+<section id="chart">
+  <h2>The decision chart: Dallas access vs. appreciation potential</h2>
+  <p class="sechint">The dual mandate in one picture. Right = easier trips from Dallas; up = stronger modeled appreciation setup (value + momentum + catalysts + risk). The upper-right quadrant is where a vacation home and an investment coincide. Top-tier picks are highlighted; hover any dot for detail.</p>
+  <div class="chartcard">
+    <h3>All screened towns</h3>
+    <p class="hint">Bubble size = weighted composite score. Benchmarks (already-boomed comps) shown as open rings.</p>
+    <div class="legendrow">
+      <span class="k"><span class="sw" style="background:var(--s1)"></span>Top-tier pick</span>
+      <span class="k"><span class="sw" style="background:var(--muted);opacity:.55"></span>Other candidate</span>
+      <span class="k"><span class="sw" style="background:transparent;box-shadow:inset 0 0 0 2px var(--s2)"></span>Benchmark (already boomed)</span>
+    </div>
+    <div id="scatter"></div>
+  </div>
+</section>
+
+<section id="map-section">
+  <h2>Map</h2>
+  <p class="sechint">Every screened town, colored by weighted composite tier. Click a marker for scores, prices, and the one-line bull/bear. Orange rings mark the historical boom benchmarks the model was trained on.</p>
+  <div id="map"></div>
+  <div class="maplegend">
+    <span><span class="sw" style="background:#0d366b"></span>Tier 1 (score ≥ 70)</span>
+    <span><span class="sw" style="background:#1c5cab"></span>Tier 2 (64–70)</span>
+    <span><span class="sw" style="background:#3987e5"></span>Tier 3 (56–64)</span>
+    <span><span class="sw" style="background:#9ec5f4"></span>Tier 4 (&lt; 56)</span>
+    <span><span class="sw" style="background:transparent;box-shadow:0 0 0 2px #eb6834"></span>Boom benchmark</span>
+  </div>
+</section>
+
+<section id="rankings">
+  <h2>Full rankings</h2>
+  <p class="sechint">All 55+ screened towns. Click a column header to sort. Sub-scores are 1–10 (risk: 10 = lowest risk). Composite is the Dallas-weighted blend; “P(boom)” is the modeled probability band for ≥7%/yr nominal appreciation over 10 years.</p>
+  <div class="tablewrap">
+    <table id="ranktable">
+      <thead><tr>
+        <th data-k="name">Town <span class="arr"></span></th>
+        <th data-k="region">Region <span class="arr"></span></th>
+        <th class="num" data-k="a">Access <span class="arr"></span></th>
+        <th class="num" data-k="v">Value <span class="arr"></span></th>
+        <th class="num" data-k="m">Momentum <span class="arr"></span></th>
+        <th class="num" data-k="c">Catalysts <span class="arr"></span></th>
+        <th class="num" data-k="r">Risk <span class="arr"></span></th>
+        <th class="num" data-k="W">Composite <span class="arr"></span></th>
+        <th data-k="A">P(boom) <span class="arr"></span></th>
+        <th data-k="price">Median / entry <span class="arr"></span></th>
+      </tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</section>
+
+<section id="playbook">
+  <h2>The boom playbook — what the winners looked like before they won</h2>
+  <p class="sechint">Reverse-engineered from five case studies. Booms are <b>manufactured</b>: a patient land-owner + a committed access project + a wealthy feeder metro + a hard supply cap. Hurricanes accelerate markets with intact demand (insurance-funded stock upgrades) and kill markets without it.</p>
+
+  <div class="chartcard" style="margin-bottom:14px">
+    <h3>Nominal price CAGR during each market’s boom window</h3>
+    <p class="hint">Entry timing dominates: the same Dare County that did 8%/yr from 2015 did 3%/yr from 2003 (bust included).</p>
+    <div id="cagr"></div>
+  </div>
+
+  <div class="cols2">
+    <div class="deep"><h3>30A, Florida (1982 → )</h3><div class="region">The template</div>
+      <p>Seaside lots: <b>$15K (1982) → $690K (2001)</b> — ~22%/yr for two decades. St. Joe Co. converted 1M acres of timberland into WaterColor/Watersound; Mid-Bay Bridge (1993), the Truman Show moment (1998), and the ECP airport on land St. Joe donated (2010) each re-rated the corridor. ~40% of south Walton is protected land — the supply cap that keeps it expensive.</p></div>
+    <div class="deep"><h3>Outer Banks, NC (1984 → )</h3><div class="region">Access unlock</div>
+      <p>Corolla had ~15 residents behind a private gate until NC-12 was extended in <b>1984</b>: homes went <b>422 → 2,750 by 2000</b>. The boom ran on volume first, price later (Duck median $850K by 2024). Lesson: a committed road/bridge project is visible in DOT plans 5–10 years before it re-prices a coast.</p></div>
+    <div class="deep"><h3>Hilton Head, SC (1956 → )</h3><div class="region">The ur-case</div>
+      <p>Bridge (1956) + Charles Fraser’s 5,000-acre Sea Pines master plan. Oceanfront half-acres: <b>~$5K (early ’60s) → $200K (1973)</b> — ~28%/yr. Fraser invented the covenant-controlled, amenity-led resort town every later boom copied.</p></div>
+    <div class="deep"><h3>Gulf Shores, AL (1979 / 2004 → )</h3><div class="region">Hurricane-rebuild flywheel</div>
+      <p>Frederic (1979) leveled the town → insurance built the first condo wall. Ivan (2004) → Turquoise Place ($1.5M avg units). Visitors 5.8M → 8.4M (2020–24). Still trades at ~half of Destin — the discount-neighbor convergence trade.</p></div>
+    <div class="deep"><h3>Port Aransas, TX (2007 / 2017 → )</h3><div class="region">The Texas proof</div>
+      <p>Cinnamon Shore (2007) imported the 30A template; Harvey (2017) damaged 85% of homes and financed a full stock upgrade. Median ~$300K (2012) → ~$670K (2026). Now the cautionary tail: <b>26 months of inventory</b> — STR-supply booms mean-revert.</p></div>
+    <div class="deep"><h3>Failure modes</h3><div class="region">The setup without the boom</div>
+      <p><b>Grand Isle</b> (direct hit every ~8 yrs + erosion + industry), <b>Bolivar</b> (Ike destroyed 62% of structures; unlimited lots), <b>Matagorda</b> (no master developer ever assembled it). Kill factors: storm frequency without wealth inflow, erosion, single fragile road, industrial adjacency, uninsurability, and no covenant-setting developer.</p></div>
+  </div>
+
+  <h3 style="margin-top:26px;font-size:16px">The 14 leading indicators (visible 5–10 years pre-boom)</h3>
+  <div class="indic">
+    <div class="it"><b>1 · Master developer land assembly</b><span>St. Joe’s 1M acres; Fraser’s 5,000. Watch county deed records &amp; REIT filings for &gt;100-acre coastal positions.</span></div>
+    <div class="it"><b>2 · Committed access infrastructure</b><span>Bridges, road takeovers, airports — public in DOT/airport plans years before ribbon-cutting.</span></div>
+    <div class="it"><b>3 · Wealthy feeder metro within 3–6 hrs</b><span>Atlanta→30A, DC→OBX, Houston→Port A. Track metro GDP growth + new direct flights.</span></div>
+    <div class="it"><b>4 · Hard supply cap on the coastline</b><span>State parks, refuges, reefs, height caps. % of beachfront in protected ownership.</span></div>
+    <div class="it"><b>5 · Lodging-tax receipts +10%/yr off a small base</b><span>County TDT data is public and leads price by years.</span></div>
+    <div class="it"><b>6 · Low STR friction + high gross yield</b><span>Screen AirDNA revenue ÷ median price &gt; 8%; scan codes for caps and bans.</span></div>
+    <div class="it"><b>7 · Post-hurricane insurance-funded stock upgrade</b><span>Frederic→condo wall; Harvey→new Port A; Michael→$1M Cape San Blas. Permit surges after storms.</span></div>
+    <div class="it"><b>8 · ≥50% price gap vs. nearest established comp</b><span>Booms flow downhill to the discount neighbor (Gulf Shores vs. Destin).</span></div>
+    <div class="it"><b>9 · A New Urbanist project breaking ground</b><span>The “Seaside signal”: Seaside ’81, Rosemary ’95, Cinnamon Shore ’07 — each preceded the steepest decade.</span></div>
+    <div class="it"><b>10 · First boutique hotel / chef restaurant / culture moment</b><span>Truman Show 1998; Marriott’s first flag in Las Terrenas 2025.</span></div>
+    <div class="it"><b>11 · Permits doubling while population stays flat</b><span>Second-home demand leads census data (Corolla 5×’d homes 1984–95).</span></div>
+    <div class="it"><b>12 · Wide lot-to-home price spread</b><span>Fat builder margins pull in spec capital.</span></div>
+    <div class="it"><b>13 · High-AGI in-migration to the county</b><span>IRS county migration files show the wealth arriving before prices do.</span></div>
+    <div class="it"><b>14 · Rising second-home/investor share of purchases</b><span>HMDA occupancy fields; falling homestead-exemption share.</span></div>
+  </div>
+</section>
+
+<section id="deep">
+  <h2>Shortlist deep dives</h2>
+  <p class="sechint">The twelve most interesting setups, with the honest bull and bear case for each.</p>
+  <div class="cols2" id="deepdives"></div>
+</section>
+
+<section id="method" class="meth">
+  <h2>Methodology &amp; probability of appreciation</h2>
+  <p><b>Process.</b> Five parallel research agents ran in Aug 2026: (1) reverse-engineered the pre-boom profiles of 30A, OBX, Hilton Head, Gulf Shores, Port Aransas and Cape San Blas into the 14-indicator checklist above; (2–5) screened 55+ candidate towns across the Texas coast, the wider Gulf, the US Atlantic/Pacific, Mexico and the Caribbean against current prices (Redfin/Zillow/Movoto/broker MLS), STR economics (AirDNA/AirROI/Airbtics), STR regulation, insurance/erosion/hazard exposure, travel logistics from DFW/DAL, and named development catalysts. Full sourced dossiers are in the <code>/research</code> folder of this repo.</p>
+  <p><b>Scoring.</b> Each town gets five 1–10 sub-scores. The composite is weighted for the dual mandate (vacation utility from Dallas + investment):</p>
+  <div class="formula">Composite = 25%·Access + 25%·Catalysts + 20%·Momentum + 15%·Value + 15%·RiskDrag &nbsp;&nbsp;(scaled to 100; RiskDrag: 10 = lowest risk)</div>
+  <p><b>Appreciation probability.</b> A separate appreciation sub-index drops Access (a house you can’t easily reach is still an investment) and re-weights toward what actually preceded historical booms:</p>
+  <div class="formula">Upside = 35%·Momentum + 30%·Catalysts + 20%·Value + 15%·RiskDrag → P(≥7%/yr nominal, 10 yrs): ≥72 → 55–70% · 62–71 → 40–55% · 52–61 → 25–40% · &lt;52 → 10–25%</div>
+  <p>The bands are anchored to the case-study base rates: even textbook setups fail roughly half the time (Grand Isle, Bolivar and Matagorda all had “the setup”), and 7%/yr nominal ≈ a doubling in a decade — the OBX-2015/Port-A-2012 outcome, not the Seaside-1982 outcome. Seaside-class returns (20%+/yr) required buying from the master developer in year one and are not what this screen can promise.</p>
+  <p><b>What the model rewards.</b> Named, funded, dated catalysts (Royal Caribbean’s $821M at Mahahual; Whitecap’s $800M at North Padre; St. Joe’s 165,000 entitled acres at Port St. Joe; SpaceX at SPI; Puerto Escondido’s 2024 highway + $200M airport) score far above vibes-based “hidden gem” press. <b>What it penalizes:</b> unlimited buildable supply, STR caps/bans (Oregon, Volusia, Corpus SFH), leasehold land (Navarre), agrarian/ejido title clouds (Puerto Escondido, La Ventana, Holbox), Level 3–4 security advisories (Jalisco/Sinaloa), and uninsurable erosion (Sargent, Dauphin Island, Cedar Key).</p>
+  <p><b>Key cross-cutting findings.</b></p>
+  <ul>
+    <li><b>2026 is an entry window, not a peak:</b> nearly every US coastal market is mid-correction (DOM up, inventory up, prices flat-to-down) after the 2020–22 surge — buyer leverage is unusually high while the long-run drivers (feeder-metro wealth, supply caps) are intact.</li>
+    <li><b>The insurance stack is the new gatekeeper:</b> budget 2–4% of home value per year all-in on US Gulf beachfront. It filters which towns can re-rate (MS wind pool &lt; FL Citizens; FORTIFIED-standard Alabama &lt; older Florida stock).</li>
+    <li><b>STR supply growth is compressing yields everywhere</b> (+35–59%/yr in several screened markets). Supply-capped towns are the only ones that can’t build their way into a Port-Aransas-style 26-month glut.</li>
+    <li><b>Tulum is the cautionary benchmark:</b> −48% condo correction, 30% occupancy — airports and trains don’t rescue oversupplied commodity product. Puerto Morelos (supply-capped, 25 min from CUN) beat it on every risk-adjusted measure.</li>
+    <li><b>International adds torque and title risk in equal measure:</b> fee-simple English-law Belize and US-rails Puerto Rico are the low-friction routes; ejido/comunal Mexico demands parcel-level title forensics + title insurance; Honduras adds sovereign risk.</li>
+  </ul>
+  <div class="caveat"><b>Caveats.</b> Sub-scores are judgment calls on top of point-in-time data (Aug 2026); small-sample beach-town medians are noisy; several flagged figures ([GK]/[EST]/~est.~ in the dossiers) were not independently re-verified; probability bands are calibrated estimates, not measured frequencies. Verify insurance quotes, title, flood zone, STR ordinances, and HOA/condo documents on any specific property before acting. This is research, not investment advice.</div>
+</section>
+
+<footer>
+  Beach Town Scout · researched &amp; built Aug 31, 2026 · data sources cited in /research dossiers · map tiles © OpenStreetMap contributors
+</footer>
+</div>
+
+<script>
+// ---------- DATA ----------
+// scores: a=Dallas access, v=current value, m=momentum, c=catalysts, r=risk drag (10 = low risk)
+const TOWNS = [
+ // US Gulf — Texas
+ {name:"North Padre Island", st:"TX", region:"US Gulf (TX)", lat:27.63, lng:-97.24, a:7,v:7,m:8,c:8,r:6, price:"$438K", yield:"6–7% (condo)", access:"DFW→CRP 4–5x daily + 30 min", note:"Whitecap NPI: $800M, 240-acre master-planned community — largest residential bet on the TX coast. One of the only coast markets still appreciating (+6.2% YoY). SFH STR ban; condos exempt."},
+ {name:"South Padre Island", st:"TX", region:"US Gulf (TX)", lat:26.11, lng:-97.17, a:4,v:6,m:9,c:9,r:5, price:"$479–535K", yield:"8–10% (condo)", access:"DFW→BRO 2–3x daily + 30 min", note:"Three independent catalysts: SpaceX/Starbase wealth (54 acres bought on SPI 7/2026), record tourism (room receipts +24% YoY), and a planned $700M–$1B second causeway."},
+ {name:"Rockport / Fulton", st:"TX", region:"US Gulf (TX)", lat:28.02, lng:-97.05, a:6,v:6,m:7,c:6,r:5, price:"$385K", yield:"~6%", access:"DFW→CRP + 40 min", note:"Art-town DNA — the most 30A-plausible aesthetic on the TX coast. Post-Harvey new stock; Fulton waterfront $/sf ripping; retiree-skewed demand."},
+ {name:"Galveston West End", st:"TX", region:"US Gulf (TX)", lat:29.19, lng:-94.98, a:9,v:5,m:6,c:6,r:3, price:"$500–529K", yield:"~7%", access:"Drive 4.75–5.25 hr (I-45)", note:"Easiest trip on the list; $437/sf (highest); $700–800M Margaritaville halo. Outside-the-seawall erosion + 3-strike STR ordinance."},
+ {name:"Crystal Beach / Bolivar", st:"TX", region:"US Gulf (TX)", lat:29.45, lng:-94.63, a:6,v:7,m:6,c:6,r:2, price:"$473K", yield:"9–10%", access:"Drive ~5.5–6 hr", note:"Best gross-yield market on the upper coast, unregulated STRs — but unlimited lots + Ike-class surge risk cap appreciation."},
+ {name:"Port O'Connor", st:"TX", region:"US Gulf (TX)", lat:28.45, lng:-96.41, a:5,v:6,m:5,c:5,r:5, price:"$388–499K", yield:"thin data", access:"Drive ~6 hr", note:"Serious-money fishing village; new ~80-slip marina; refuge-locked views. No Gulf beach in town."},
+ {name:"Matagorda", st:"TX", region:"US Gulf (TX)", lat:28.69, lng:-95.97, a:7,v:8,m:3,c:3,r:5, price:"$295–449K", yield:"thin data", access:"Drive ~5–5.5 hr", note:"Cheapest scarce beachfront — but no growth engine; the historical failure-mode case: no developer ever assembled it."},
+ {name:"Surfside Beach", st:"TX", region:"US Gulf (TX)", lat:28.95, lng:-95.29, a:8,v:6,m:4,c:3,r:3, price:"$425K", yield:"~7%", access:"Drive ~4.75–5 hr", note:"Closest true beach town to Dallas; hard supply cap — but existential front-row erosion and a petrochemical horizon."},
+ {name:"Sargent", st:"TX", region:"US Gulf (TX)", lat:28.77, lng:-95.62, a:7,v:7,m:3,c:5,r:1, price:"$320–395K", yield:"thin data", access:"Drive ~5 hr", note:"$86M USACE stabilization under construction against the worst erosion on the TX coast (20–43 ft/yr). A bet on one project."},
+ {name:"Port Mansfield", st:"TX", region:"US Gulf (TX)", lat:26.55, lng:-97.43, a:2,v:6,m:4,c:4,r:6, price:"$512K", yield:"~7%", access:"Drive ~8.5 hr / HRL + 50 min", note:"World-class fishery, $21.4M dredging done, absolute scarcity — but leased land and no beach."},
+ {name:"Port Aransas", st:"TX", region:"US Gulf (TX)", lat:27.83, lng:-97.06, a:5,v:3,m:4,c:4,r:5, price:"$600K", yield:"~9%", access:"DFW→CRP + 50 min + ferry", benchmark:true, note:"The already-boomed TX comp: ~2x in 10 yrs, now 26 months of inventory. The cautionary tale for STR-supply booms."},
+ // US Gulf — MS/AL/FL
+ {name:"Bay St. Louis", st:"MS", region:"US Gulf (MS/AL/FL)", lat:30.309, lng:-89.331, a:9,v:9,m:7,c:6,r:5, price:"$230–343K", yield:"~9%", access:"Drive 7.5 hr or DFW→GPT + 30 min", note:"Cheapest real walkable arts town in the screen; 'Seaside 1990' energy; MS wind pool ≪ FL insurance. Ceiling: brown-water Mississippi Sound."},
+ {name:"Ocean Springs", st:"MS", region:"US Gulf (MS/AL/FL)", lat:30.411, lng:-88.828, a:8,v:8,m:6,c:5,r:6, price:"$275K", yield:"—", access:"Drive ~8 hr or GPT + 25 min", note:"Best food/arts scene on the MS coast, fastest DOM — but a lifestyle-town play, not beachfront."},
+ {name:"Pass Christian", st:"MS", region:"US Gulf (MS/AL/FL)", lat:30.316, lng:-89.247, a:9,v:6,m:4,c:3,r:5, price:"$399–484K", yield:"—", access:"Drive 7.5 hr / GPT + 20 min", note:"Prestige preservation market; STR-restrictive; not a boom candidate."},
+ {name:"Port St. Joe / Cape San Blas", st:"FL", region:"US Gulf (MS/AL/FL)", lat:29.75, lng:-85.31, a:6,v:6,m:7,c:9,r:4, price:"$440K / $1.12M cape", yield:"~8–10%", access:"DFW/DAL→ECP + 50–75 min", note:"St. Joe Co. — the creator of 30A — owns 165,000 acres here with entitlements for 170K+ units and a 427-slip marina already built. The purest structural next-30A bet."},
+ {name:"Navarre Beach", st:"FL", region:"US Gulf (MS/AL/FL)", lat:30.378, lng:-86.863, a:7,v:5,m:7,c:6,r:4, price:"$865–910K", yield:"$85K median rev", access:"DFW/DAL→PNS + 45 min", note:"Best rental revenue on the non-TX Gulf inside a national-seashore supply cap — but 100% leasehold land (99-yr lease from 1956)."},
+ {name:"Perdido Key", st:"FL", region:"US Gulf (MS/AL/FL)", lat:30.29, lng:-87.44, a:7,v:5,m:6,c:7,r:4, price:"$707K", yield:"~5%", access:"DFW/DAL→PNS + 45 min", note:"Hardest supply cap on the Gulf (seashore + state park + beach-mouse HCP); first new condo cycle in 18 years starting."},
+ {name:"Mexico Beach", st:"FL", region:"US Gulf (MS/AL/FL)", lat:29.948, lng:-85.42, a:7,v:7,m:5,c:6,r:3, price:"$450–550K", yield:"~7%", access:"DFW/DAL→ECP + 40 min", note:"All-new, code-built, elevated stock (post-Michael) at half of Cape San Blas pricing; carry cost (wind+flood) is the whole story."},
+ {name:"Fort Morgan", st:"AL", region:"US Gulf (MS/AL/FL)", lat:30.228, lng:-87.97, a:6,v:5,m:6,c:5,r:4, price:"$742K list", yield:"strong peak", access:"DFW→PNS/Mobile + ~2 hr", note:"Permissive STRs + refuge-constrained supply next to record Gulf Shores tourism — but a dead-end road that can never form a town."},
+ {name:"St. George Island", st:"FL", region:"US Gulf (MS/AL/FL)", lat:29.66, lng:-84.86, a:4,v:4,m:4,c:5,r:4, price:"$1.2M", yield:"$54K avg rev", access:"ECP + ~2 hr", note:"Already discovered at a $1.2M median with softening prices; great scarcity, wrong point in the cycle."},
+ {name:"Dauphin Island", st:"AL", region:"US Gulf (MS/AL/FL)", lat:30.255, lng:-88.11, a:6,v:5,m:3,c:3,r:2, price:"$495K", yield:"$39K avg rev", access:"DFW→Mobile + 50 min", note:"Most expensive insurance town in Alabama ($13.9K/yr avg); mayor questions the island's long-term existence."},
+ {name:"Cedar Key / Steinhatchee", st:"FL", region:"US Gulf (MS/AL/FL)", lat:29.14, lng:-83.03, a:2,v:6,m:2,c:2,r:1, price:"$399K", yield:"declining", access:"~14.5 hr / no useful airport", note:"Three hurricanes in 13 months; fails every screen criterion except romance."},
+ {name:"Grand Isle", st:"LA", region:"US Gulf (MS/AL/FL)", lat:29.24, lng:-89.99, a:3,v:5,m:2,c:1,r:1, price:"$240–280K", yield:"—", access:"MSY + ~2 hr", note:"The canonical failure mode: direct hit every ~8 years, erosion, industry, one road."},
+ // US Atlantic
+ {name:"Brunswick / Darien", st:"GA", region:"US Atlantic", lat:31.37, lng:-81.43, a:5,v:8,m:8,c:8,r:6, price:"$374K", yield:"—", access:"JAX/SAV + ~1h15", note:"+72.5% 5-yr FHFA, 900-acre Darien development, Hyundai Metaplant wages — but a marsh gateway, not itself a beach."},
+ {name:"Oak Island / Brunswick Co.", st:"NC", region:"US Atlantic", lat:33.92, lng:-78.16, a:6,v:8,m:6,c:7,r:5, price:"$690K", yield:"~6%", access:"DFW→ILM 2x daily + 45 min", note:"Buyer's-market entry (7.6-mo supply) into one of the fastest-growing US counties; NC STR freedom."},
+ {name:"Flagler Beach", st:"FL", region:"US Atlantic", lat:29.475, lng:-81.127, a:7,v:8,m:6,c:7,r:4, price:"$425K", yield:"~7%", access:"DFW→DAB nonstop + 35 min", note:"Cheapest character beach town in FL with a Dallas nonstop 35 min away; Palm Coast growth engine one bridge away; A1A erosion is the tax."},
+ {name:"Pawleys Island / Murrells Inlet", st:"SC", region:"US Atlantic", lat:33.43, lng:-79.12, a:8,v:7,m:6,c:6,r:5, price:"$390–549K", yield:"~6%", access:"DAL→MYR (Southwest) + 35 min", note:"Easiest logistics in the Atlantic screen; Myrtle Beach growth beta, not hidden-gem alpha."},
+ {name:"Amelia Island / Fernandina", st:"FL", region:"US Atlantic", lat:30.67, lng:-81.46, a:8,v:5,m:5,c:4,r:7, price:"$635–780K", yield:"zoned", access:"JAX + 45 min", note:"Best risk-adjusted FL Atlantic beach (sane insurance, 9.7%/yr decade CAGR) — but discovered, and STRs restricted to R-3 zones."},
+ {name:"Crystal Coast (Emerald Isle/Beaufort)", st:"NC", region:"US Atlantic", lat:34.66, lng:-77.03, a:3,v:7,m:7,c:6,r:5, price:"$609–875K", yield:"~6%", access:"ILM + 1h30 (~6h door-to-door)", note:"The best character/press story on the Atlantic ('America's Coolest Small Town') — access from Dallas kills it."},
+ {name:"Surf City / Topsail", st:"NC", region:"US Atlantic", lat:34.43, lng:-77.55, a:6,v:7,m:6,c:5,r:4, price:"$558K", yield:"best NC", access:"ILM + 45 min", note:"Growth-corridor value; North Topsail's high yields are CBRA-zone risk priced in (no federal flood insurance)."},
+ {name:"New Smyrna Beach", st:"FL", region:"US Atlantic", lat:29.03, lng:-80.92, a:8,v:5,m:3,c:4,r:3, price:"$433–470K", yield:"banned", access:"DAB + 25 min", note:"The 2021 'next hidden gem' — already boomed, now −15% drawdown with an STR ban and $6–12K insurance."},
+ {name:"Vero Beach / Sebastian", st:"FL", region:"US Atlantic", lat:27.64, lng:-80.39, a:3,v:7,m:4,c:5,r:5, price:"$360–410K", yield:"—", access:"MCO/PBI + 1h30+", note:"Real value next to real wealth, but no Dallas access today and 84% of listings cutting price."},
+ {name:"Chincoteague", st:"VA", region:"US Atlantic", lat:37.93, lng:-75.38, a:2,v:7,m:5,c:6,r:4, price:"$422–499K", yield:"—", access:"ORF + 2 hr", note:"Rocket-launch catalyst (Wallops) + refuge scarcity vs. one of the East Coast's worst sea-level-rise exposures."},
+ {name:"Edisto Beach", st:"SC", region:"US Atlantic", lat:32.49, lng:-80.30, a:3,v:5,m:4,c:3,r:4, price:"$680–719K", yield:"—", access:"CHS + 1h30", note:"Scarcity without a catalyst; erosion capex forever."},
+ {name:"Tybee Island", st:"GA", region:"US Atlantic", lat:32.00, lng:-80.85, a:6,v:4,m:6,c:4,r:5, price:"$730K", yield:"capped", access:"SAV + 30 min", note:"Savannah's beach; STR permits frozen in residential zones; priced."},
+ // US Pacific
+ {name:"Seabrook", st:"WA", region:"US Pacific", lat:47.17, lng:-124.20, a:4,v:4,m:9,c:8,r:7, price:"$984K", yield:"built-in", access:"SEA + 2.5 hr", note:"The literal engineered Seaside-of-the-Northwest: +17% YoY, developer-controlled supply and rental engine. Late entry, cold water, single-developer risk."},
+ {name:"Lincoln City", st:"OR", region:"US Pacific", lat:44.96, lng:-124.02, a:4,v:6,m:4,c:3,r:5, price:"$439–487K", yield:"capped", access:"PDX + 2h20", note:"Oregon has 30A's scarcity but legislated away the flywheel: STR caps reached, applications suspended."},
+ {name:"Oceanside", st:"CA", region:"US Pacific", lat:33.20, lng:-117.38, a:8,v:3,m:4,c:4,r:7, price:"$870–914K", yield:"capped", access:"SAN + 35 min", note:"The boom already happened (2018–22); now SoCal beta with capped STRs."},
+ {name:"Morro Bay / Cayucos", st:"CA", region:"US Pacific", lat:35.37, lng:-120.85, a:3,v:3,m:4,c:3,r:6, price:"$889K–$2.2M", yield:"175-cap", access:"DFW→SBP 2x/week + 20 min", note:"Coastal Act freezes supply AND monetization — no boom mechanics possible."},
+ {name:"Ocean Shores", st:"WA", region:"US Pacific", lat:46.97, lng:-124.16, a:4,v:7,m:2,c:4,r:3, price:"$375K", yield:"—", access:"SEA + 2.5 hr", note:"Cheap lottery ticket on the Seabrook halo; sea-level, tsunami-zone, declining prints."},
+ // Mexico
+ {name:"Puerto Escondido", st:"Oaxaca, MX", region:"Mexico", lat:15.86, lng:-97.07, a:6,v:6,m:9,c:9,r:4, price:"$150–350K condos", yield:"6–10%", access:"DFW→PXM 1x/wk nonstop (Dec 2025) or via IAH", note:"+111–160% in 5 years and still compounding: 2024 highway (Oaxaca City 6.5→2.5 hr) + $200M airport expansion. Agrarian/comunal title is the existential risk — clean-title parcels only."},
+ {name:"San Pancho / Lo de Marcos", st:"Nayarit, MX", region:"Mexico", lat:20.905, lng:-105.41, a:9,v:4,m:7,c:6,r:7, price:"$411/sf SP; $250–600K LdM", yield:"3–5%", access:"DFW→PVR 2x daily + 45 min", note:"The literal next town past Sayulita with 30A-grade logistics; Mandarina/Rosewood anchors 20 min north. Lo de Marcos is the value sleeve."},
+ {name:"Loreto", st:"BCS, MX", region:"Mexico", lat:26.01, lng:-111.35, a:6,v:6,m:8,c:8,r:6, price:"$500K median", yield:"~2.5–4%", access:"DFW→LTO nonstop (1→4x/wk) + 10 min", note:"+60% since 2021 with institutional build-out arriving (TPC golf, 80-slip marina, FONATUR bones); cleanest title in Baja; airport-dependence is the concentration risk."},
+ {name:"Todos Santos / Pescadero", st:"BCS, MX", region:"Mexico", lat:23.45, lng:-110.22, a:8,v:6,m:5,c:7,r:4, price:"$500K median", yield:"~3.3%", access:"DFW→SJD 10x/wk + 75 min", note:"The proven '30A of Baja' — condos −62% off peak = buy-the-dip window; aquifer salinization and ejido edges are the drag."},
+ {name:"La Ventana / El Sargento", st:"BCS, MX", region:"Mexico", lat:24.05, lng:-109.99, a:4,v:7,m:7,c:7,r:5, price:"lots $120–170K", yield:"~2.7–5%", access:"SJD + 2.5 hr or 1-stop LAP + 40 min", note:"World-class kite anchor; land volume +656% YoY; titled supply locked by surrounding ejido. One-season economy."},
+ {name:"Barra de Navidad / Costalegre", st:"Jalisco, MX", region:"Mexico", lat:19.20, lng:-104.68, a:4,v:8,m:5,c:8,r:5, price:"$150–400K", yield:"4–6%", access:"DFW→ZLO (announced 4/2026) + 35 min", note:"Cheapest land basis between Four Seasons Tamarindo and Six Senses Xala; $1B+ luxury pole — but the airport catalysts are still promises."},
+ {name:"Huatulco", st:"Oaxaca, MX", region:"Mexico", lat:15.77, lng:-96.13, a:6,v:6,m:4,c:5,r:7, price:"below PV/Playa", yield:"—", access:"DFW→HUX 2x/wk", note:"FONATUR-clean title, slower appreciation, Canadian-retiree profile."},
+ {name:"Mazatlán", st:"Sinaloa, MX", region:"Mexico", lat:23.25, lng:-106.41, a:5,v:7,m:2,c:3,r:2, price:"$230K avg condo", yield:"~4.8%", access:"DFW→MZT 1–2x/wk", note:"Level 4 DO NOT TRAVEL mid-cartel-war; tourism −25–30%. Avoid until visibly resolved."},
+ {name:"Puerto Morelos", st:"Q.Roo, MX", region:"Mexico", lat:20.85, lng:-86.88, a:9,v:7,m:6,c:5,r:7, price:"~$2,000/m²", yield:"~5–5.5%", access:"DFW→CUN 3x daily + 25 min", note:"The boring compounder: structurally capped supply (reef park + mangrove; 17 projects vs Playa's 184) at a 15–25% discount to Playa, 25 min from a mega-airport."},
+ {name:"Mahahual / Costa Maya", st:"Q.Roo, MX", region:"Mexico", lat:18.71, lng:-87.71, a:3,v:8,m:7,c:9,r:4, price:"lots from $50K", yield:"land play", access:"CUN + 4 hr", note:"Royal Caribbean's $821M 'Perfect Day Mexico' opens ~2027 (~1M→4M pax/decade) with entry lots at $50K — the clearest asymmetric land bet in the screen. Cruise-enclave caveat applies."},
+ {name:"Isla Holbox", st:"Q.Roo, MX", region:"Mexico", lat:21.52, lng:-87.38, a:4,v:6,m:6,c:5,r:3, price:"~$1,200/m²", yield:"boutique", access:"CUN + 2h15 + ferry", note:"Hard legal supply cap (Yum Balam reserve moratorium) + sargassum-free — but title forensics, surge exposure, and a straining sewage/trash system."},
+ {name:"Bacalar", st:"Q.Roo, MX", region:"Mexico", lat:18.68, lng:-88.39, a:2,v:7,m:6,c:4,r:4, price:"lots from $30K", yield:"49% occ", access:"CUN + 4.5 hr", note:"Lagoon, not beach. Cheapest waterfront in the state and better occupancy than Tulum — but the lagoon is measurably degrading and Dallas access is terrible."},
+ {name:"Tulum", st:"Q.Roo, MX", region:"Mexico", lat:20.21, lng:-87.46, a:8,v:6,m:2,c:3,r:2, price:"−48% off peak", yield:"3–5%", access:"DFW→TQO 5x/wk", benchmark:true, note:"The post-boom benchmark: condos −47.6% (2023–25), 30% occupancy, 18 developments closed by authorities. The template of what to avoid."},
+ {name:"Isla Mujeres", st:"Q.Roo, MX", region:"Mexico", lat:21.23, lng:-86.73, a:10,v:5,m:7,c:6,r:6, price:"$250–500K", yield:"strong", access:"DFW→CUN 10x daily + 20-min ferry", note:"The access king of the international screen (~5 hr door-to-door) on a supply-capped 5-mile island; 'already-Tulum-adjacent' rather than pre-boom."},
+ // Caribbean
+ {name:"Rincón / Aguadilla / Isabela", st:"PR", region:"Caribbean", lat:18.34, lng:-67.25, a:7,v:6,m:7,c:7,r:4, price:"$385K median", yield:"~7.4%", access:"DFW→SJU 2x daily + 2.5 hr (BQN improving)", note:"The only international-feel market with US title, US courts, and Fannie Mae loans; Act 60 extended to 2055; BQN airlift expanding. Grid failure is the tax (solar+battery mandatory)."},
+ {name:"Las Terrenas", st:"DR", region:"Caribbean", lat:19.31, lng:-69.54, a:4,v:6,m:8,c:8,r:5, price:"$290K median", yield:"$19–24K rev", access:"1-stop SDQ + 2.5 hr", note:"Marriott's first flag landed Nov 2025; +8–12%/yr prints; a future US route into El Catey (30 min away) is unpriced option value. The cleanest 'Tulum 2012' analog."},
+ {name:"Cabarete / North Coast", st:"DR", region:"Caribbean", lat:19.75, lng:-70.41, a:5,v:8,m:5,c:7,r:5, price:"$100–305K", yield:"4–6%", access:"1-stop POP + 25 min", note:"Cheapest credible beach market in the screen, one ridge from the state-led Punta Bergantín megaproject — a value trap until POP airlift shows up."},
+ {name:"Ambergris Caye (San Pedro)", st:"Belize", region:"Caribbean", lat:17.92, lng:-87.96, a:9,v:5,m:8,c:7,r:6, price:"$420–600K (2BR)", yield:"5–8% gross", access:"DFW→BZE 6–8x/wk + 20-min hop", note:"The only Caribbean island ~6 hrs door-to-door from DFW with fee-simple English-law title; 68–71% national occupancy; Six Senses building. Avoid raw Secret Beach lots."},
+ {name:"Placencia", st:"Belize", region:"Caribbean", lat:16.51, lng:-88.37, a:6,v:6,m:6,c:5,r:5, price:"$250–450K", yield:"5–8%", access:"BZE + hop or 3.5-hr drive", note:"Belize's best actual beach at a 30–40% discount to San Pedro; Hurricane Iris bullseye history on a 500m sand spit."},
+ {name:"Hopkins", st:"Belize", region:"Caribbean", lat:16.84, lng:-88.28, a:6,v:8,m:5,c:4,r:5, price:"beachfront $250–550K", yield:"7–10% on low base", access:"BZE + 2-hr paved drive", note:"The cheapest credible beachfront in the region — pre-institutional entry, but no supply constraint and no forcing catalyst."},
+ {name:"Roatán (West Bay/West End)", st:"Honduras", region:"Caribbean", lat:16.27, lng:-86.60, a:7,v:8,m:7,c:6,r:4, price:"$250–325K condos", yield:"5–8%", access:"DFW→RTB nonstop most of year", note:"Half the price of Ambergris for a better beach; airlift compounding; West Bay supply capped. Honduran sovereign/title risk and 25% rental withholding cap the exit multiple."},
+ // Benchmarks (context only)
+ {name:"Seaside / 30A", st:"FL", region:"Benchmark", lat:30.321, lng:-86.14, a:7,v:1,m:5,c:5,r:6, price:"$2–8.9M gulf-front", yield:"—", access:"DFW→ECP/VPS", benchmark:true, mapOnly:true, note:"The template: lots $15K (1982) → $690K (2001) → $2.5M+ today."},
+ {name:"Corolla / Outer Banks", st:"NC", region:"Benchmark", lat:36.377, lng:-75.83, a:2,v:2,m:5,c:4,r:5, price:"Duck median $850K", yield:"—", access:"ORF + 1.5–2 hr", benchmark:true, mapOnly:true, note:"NC-12 (1984) took Corolla from 422 homes to 2,750 by 2000."},
+ {name:"Gulf Shores / Orange Beach", st:"AL", region:"Benchmark", lat:30.246, lng:-87.70, a:6,v:5,m:6,c:5,r:5, price:"$452–690K", yield:"—", access:"DFW→PNS/Mobile", benchmark:true, mapOnly:true, note:"Hurricane-rebuild flywheel; 8.4M visitors 2024; still ~half of Destin pricing."},
+ {name:"Hilton Head", st:"SC", region:"Benchmark", lat:32.19, lng:-80.74, a:5,v:2,m:4,c:3,r:6, price:"—", yield:"—", access:"SAV + 1 hr", benchmark:true, mapOnly:true, note:"The ur-case: oceanfront lots ~28%/yr, 1958–1973."}
+];
+
+const W = t => 2.5*t.a + 1.5*t.v + 2.0*t.m + 2.5*t.c + 1.5*t.r;         // composite /100
+const A = t => 2.0*t.v + 3.5*t.m + 3.0*t.c + 1.5*t.r;                    // upside /100
+function pBand(t){
+  const s = A(t);
+  if(s >= 72) return {k:"hi", label:"High · 55–70%"};
+  if(s >= 62) return {k:"el", label:"Elevated · 40–55%"};
+  if(s >= 52) return {k:"mo", label:"Moderate · 25–40%"};
+  return {k:"lo", label:"Low · 10–25%"};
+}
+const CANDIDATES = TOWNS.filter(t=>!t.benchmark);
+const RANKED = [...CANDIDATES].sort((x,y)=>W(y)-W(x));
+const TOP10 = new Set(RANKED.slice(0,10).map(t=>t.name));
+
+// ---------- STAT TILES ----------
+(function(){
+  const el = document.getElementById('tiles');
+  const items = [
+    {lbl:"Towns screened", val: String(CANDIDATES.length), note:"across 6 coastal regions"},
+    {lbl:"#1 composite", val: RANKED[0].name.split("/")[0].trim(), note: RANKED[0].region + " · " + Math.round(W(RANKED[0])) + "/100"},
+    {lbl:"Structural “next 30A”", val:"Port St. Joe", note:"St. Joe Co. owns 165,000 acres"},
+    {lbl:"Biggest single catalyst", val:"$821M", note:"Royal Caribbean at Mahahual (~2027)"},
+    {lbl:"Cautionary benchmark", val:"Tulum −48%", note:"oversupply beats any airport"}
+  ];
+  el.innerHTML = items.map(i=>`<div class="tile"><div class="lbl">${i.lbl}</div><div class="val">${i.val}</div><div class="note">${i.note}</div></div>`).join("");
+})();
+
+// ---------- TOP PICKS ----------
+(function(){
+  const picks = [
+    {n:"Bay St. Louis, MS", tag:"Best drive-market value", t: CANDIDATES.find(t=>t.name==="Bay St. Louis"),
+     why:"The only sub-$350K walkable arts town in the screen, 7.5 hrs door-to-door by car or 30 min from a DFW nonstop (GPT). MS wind-pool insurance beats Florida by a mile, STRs are registration-only, and the press cycle ('coolest coastal towns') is exactly what 30A looked like pre-boom. The ceiling is the Sound's brown water — this compounds, it doesn't moonshot."},
+    {n:"Port St. Joe / Cape San Blas, FL", tag:"The structural next-30A", t: CANDIDATES.find(t=>t.name.startsWith("Port St. Joe")),
+     why:"Leading indicator #1 at maximum strength: St. Joe Co. — the company that literally built 30A — owns 165,000 acres here (90% within 15 mi of the Gulf), has a 427-slip marina in the water, and entitlements for 170K+ units. PPSF +9.2%, sales counts re-accelerating, and ECP (a Dallas nonstop) growing 3%/yr. The bet is on JOE's timeline; STR supply +55%/yr is the near-term drag."},
+    {n:"North Padre Island, TX", tag:"Best Texas catalyst play", t: CANDIDATES.find(t=>t.name==="North Padre Island"),
+     why:"The only Gulf market still appreciating in 2026 (+6.2%), with the $800M Whitecap master-planned community — Texas's first at-scale 30A clone — pulling comps upward, and a real airport (CRP, 4–5x daily from DFW) 30 min away. Buy condos or inside Whitecap: the island's single-family STR ban re-routes the classic beach-house model."},
+    {n:"Puerto Escondido, Oaxaca", tag:"Highest international torque", t: CANDIDATES.find(t=>t.name==="Puerto Escondido"),
+     why:"+111–160% in five years and the catalysts are still landing: the 2024 highway collapsed Oaxaca City access from 6.5 to 2.5 hours, a $200M airport expansion targets 2.5M passengers, and AA just opened a DFW nonstop. Gross yields of 6–10% still exist. The catch is existential: much of the cheap land is comunal/agrarian and can be voided by a tribunal — buy regularized private title with title insurance, or not at all."},
+    {n:"Ambergris Caye, Belize", tag:"Best international access + title", t: CANDIDATES.find(t=>t.name.startsWith("Ambergris")),
+     why:"Six hours door-to-door from DFW, fee-simple English-law title, contracts in English, 68–71% national STR occupancy, and a branded pipeline (Alaia open, Six Senses building). You pay up for the safety — value scores just 5 — and Secret Beach raw lots are a liquidity trap; buy built income product near town."}
+  ];
+  const el = document.getElementById('picksgrid');
+  el.innerHTML = picks.map((p,i)=>{
+    const t=p.t, w=Math.round(W(t)), pb=pBand(t);
+    return `<div class="pick">
+      <div class="rank">#${i+1} · ${p.tag}</div>
+      <h3>${p.n}</h3>
+      <div class="region">${t.access} · entry ${t.price}</div>
+      <div class="scorebar"><i style="width:${w}%"></i></div>
+      <div class="meta"><span>Composite <b>${w}/100</b></span><span>P(boom) <span class="badge ${pb.k==='hi'?'hi':'el'}">${pb.label}</span></span></div>
+      <div class="thesis">${p.why}</div>
+    </div>`;
+  }).join("");
+})();
+
+// ---------- SCATTER ----------
+(function(){
+  const Wd=1160, Hd=560, m={l:56,r:30,t:16,b:46};
+  const iw=Wd-m.l-m.r, ih=Hd-m.t-m.b;
+  const X=v=>m.l+(v-1)/9*iw;                 // access 1-10
+  const Y=v=>m.t+ih-(v-20)/70*ih;            // upside 20-90
+  let s=`<svg viewBox="0 0 ${Wd} ${Hd}" style="width:100%;min-width:760px;display:block" font-family="system-ui,-apple-system,'Segoe UI',sans-serif">`;
+  for(let g=30;g<=90;g+=10){ s+=`<line x1="${m.l}" y1="${Y(g)}" x2="${Wd-m.r}" y2="${Y(g)}" stroke="var(--grid)" stroke-width="1"/><text x="${m.l-8}" y="${Y(g)+4}" text-anchor="end" font-size="11" fill="var(--muted)" style="font-variant-numeric:tabular-nums">${g}</text>`; }
+  for(let g=2;g<=10;g+=2){ s+=`<line x1="${X(g)}" y1="${m.t}" x2="${X(g)}" y2="${m.t+ih}" stroke="var(--grid)" stroke-width="1"/><text x="${X(g)}" y="${Hd-m.b+18}" text-anchor="middle" font-size="11" fill="var(--muted)" style="font-variant-numeric:tabular-nums">${g}</text>`; }
+  s+=`<line x1="${m.l}" y1="${m.t+ih}" x2="${Wd-m.r}" y2="${m.t+ih}" stroke="var(--axis)" stroke-width="1"/>`;
+  s+=`<text x="${m.l+iw/2}" y="${Hd-8}" text-anchor="middle" font-size="12" fill="var(--text-2)">Dallas accessibility (1–10) →</text>`;
+  s+=`<text x="16" y="${m.t+ih/2}" text-anchor="middle" font-size="12" fill="var(--text-2)" transform="rotate(-90 16 ${m.t+ih/2})">Appreciation upside index (0–100) →</text>`;
+  // quadrant hint
+  s+=`<text x="${Wd-m.r-6}" y="${m.t+16}" text-anchor="end" font-size="11.5" fill="var(--muted)">easy trip + high upside ↗</text>`;
+  const pts = TOWNS.filter(t=>!t.mapOnly);
+  // draw non-top first
+  const draw = t=>{
+    const up=A(t), x=X(t.a), y=Y(up), rr=4+ (W(t)-45)/9;
+    const short=t.name.length>22?t.name.split("/")[0].trim():t.name;
+    const tip=`${t.name} (${t.st}) — access ${t.a}/10, upside ${Math.round(up)}/100, composite ${Math.round(W(t))}/100`;
+    if(t.benchmark){
+      return `<circle cx="${x}" cy="${y}" r="${Math.max(rr,5)}" fill="none" stroke="var(--s2)" stroke-width="2"><title>${tip} (benchmark)</title></circle>`;
+    }
+    if(TOP10.has(t.name)){
+      return `<circle cx="${x}" cy="${y}" r="${Math.max(rr,5.5)}" fill="var(--s1)" stroke="var(--surface-1)" stroke-width="2"><title>${tip}</title></circle>
+        <text x="${x}" y="${y-11}" text-anchor="middle" font-size="11" fill="var(--text-1)" font-weight="600">${short}</text>`;
+    }
+    return `<circle cx="${x}" cy="${y}" r="${Math.max(rr,4.5)}" fill="var(--muted)" opacity="0.5" stroke="var(--surface-1)" stroke-width="2"><title>${tip}</title></circle>`;
+  };
+  s+= pts.filter(t=>!TOP10.has(t.name)&&!t.benchmark).map(draw).join("");
+  s+= pts.filter(t=>t.benchmark).map(draw).join("");
+  s+= pts.filter(t=>TOP10.has(t.name)).map(draw).join("");
+  s+="</svg>";
+  document.getElementById('scatter').innerHTML=s;
+})();
+
+// ---------- CAGR BAR CHART ----------
+(function(){
+  const data=[
+    {l:"Sea Pines lots '58–'73", v:28},
+    {l:"Seaside lots '82–'01", v:22},
+    {l:"Seaside lots '82–'25", v:12.5},
+    {l:"Dare Co. '15–'24", v:8},
+    {l:"Port Aransas '12–'26", v:6.5},
+    {l:"Dare Co. '03–'24 (bust incl.)", v:3.1}
+  ];
+  const Wd=1160, bh=24, gap=14, m={l:230,r:70,t:10,b:30};
+  const Hd=m.t+data.length*(bh+gap)+m.b;
+  const maxv=30, X=v=>m.l+v/maxv*(Wd-m.l-m.r);
+  let s=`<svg viewBox="0 0 ${Wd} ${Hd}" style="width:100%;min-width:700px;display:block" font-family="system-ui,-apple-system,'Segoe UI',sans-serif">`;
+  for(let g=0;g<=30;g+=10){ s+=`<line x1="${X(g)}" y1="${m.t}" x2="${X(g)}" y2="${Hd-m.b}" stroke="var(--grid)"/><text x="${X(g)}" y="${Hd-m.b+16}" text-anchor="middle" font-size="11" fill="var(--muted)">${g}%</text>`; }
+  data.forEach((d,i)=>{
+    const y=m.t+i*(bh+gap);
+    s+=`<text x="${m.l-10}" y="${y+bh/2+4}" text-anchor="end" font-size="12" fill="var(--text-2)">${d.l}</text>`;
+    s+=`<path d="M${m.l},${y} H${X(d.v)-4} q4,0 4,4 v${bh-8} q0,4 -4,4 H${m.l} Z" fill="var(--s1)"/>`;
+    s+=`<text x="${X(d.v)+8}" y="${y+bh/2+4}" font-size="12" fill="var(--text-1)" font-weight="600">${d.v}%/yr</text>`;
+  });
+  s+=`<line x1="${X(0)}" y1="${m.t}" x2="${X(0)}" y2="${Hd-m.b}" stroke="var(--axis)"/>`;
+  s+="</svg>";
+  document.getElementById('cagr').innerHTML=s;
+})();
+
+// ---------- RANK TABLE ----------
+(function(){
+  const tbody = document.querySelector('#ranktable tbody');
+  let sortKey='W', dir=-1;
+  function val(t,k){
+    if(k==='W') return W(t);
+    if(k==='A') return A(t);
+    if(k==='name'||k==='region'||k==='price') return (t[k]||"").toLowerCase?.() ?? t[k];
+    return t[k];
+  }
+  function render(){
+    const rows=[...CANDIDATES].sort((x,y)=>{
+      const a=val(x,sortKey), b=val(y,sortKey);
+      if(typeof a==='string') return dir*a.localeCompare(b);
+      return dir*(a-b);
+    });
+    tbody.innerHTML = rows.map(t=>{
+      const w=Math.round(W(t)), pb=pBand(t);
+      return `<tr title="${(t.note||'').replace(/"/g,'&quot;')}">
+        <td><b>${t.name}</b> <span style="color:var(--muted)">${t.st}</span></td>
+        <td style="color:var(--text-2)">${t.region}</td>
+        <td class="num">${t.a}</td><td class="num">${t.v}</td><td class="num">${t.m}</td><td class="num">${t.c}</td><td class="num">${t.r}</td>
+        <td class="num"><b>${w}</b><span class="minibar"><i style="width:${w}%"></i></span></td>
+        <td><span class="pill p-${pb.k}">${pb.label.split(" · ")[0]}</span></td>
+        <td style="color:var(--text-2);white-space:nowrap">${t.price||"—"}</td>
+      </tr>`;
+    }).join("");
+    document.querySelectorAll('#ranktable th').forEach(th=>{
+      th.querySelector('.arr').textContent = th.dataset.k===sortKey ? (dir<0?'▼':'▲') : '';
+    });
+  }
+  document.querySelectorAll('#ranktable th').forEach(th=>{
+    th.addEventListener('click',()=>{
+      const k=th.dataset.k;
+      if(k===sortKey) dir*=-1; else { sortKey=k; dir = (k==='name'||k==='region'||k==='price')?1:-1; }
+      render();
+    });
+  });
+  render();
+})();
+
+// ---------- DEEP DIVES ----------
+(function(){
+  const dd=[
+    {n:"Bay St. Louis, MS", r:"US Gulf · composite 73", body:"Zillow typical $230K, median sold ~$343K; 289 STRs averaging $30.7K/yr at a $275 ADR (registration-only regime, no cap). Depot District buildout and an arts-walk downtown give it the only real 'Seaside 1990' village DNA within driving range of Dallas.", bull:"Cheapest real town in the screen, drivable, insurable, with genuine press momentum.", bear:"Mississippi Sound water will never be 30A-emerald — the luxury ceiling is structural. Inland supply is wide open."},
+    {n:"Port St. Joe / Cape San Blas, FL", r:"US Gulf · composite 67", body:"PSJ median $440K (PPSF +9.2%); Cape median list $1.12M with 2025 sales +28% by count. St. Joe Co. (JOE) owns 165,000 acres — ~90% within 15 miles of the Gulf — plus the 427-slip Point South Marina, and is actively fighting for annexation to develop. Gulf-front rentals gross $200K+/yr.", bull:"The only market on Earth where 30A's actual creator is the dominant landowner and early-cycle.", bear:"JOE's timeline is contested and slow; STR supply +55% YoY is crushing per-door revenue; Michael-class surge memory and the FL insurance stack."},
+    {n:"North Padre Island, TX", r:"US Gulf · composite 73", body:"Island median $438K, +6.2% YoY while the rest of the coast corrects. Whitecap NPI ($800M, 240 acres, 600 residences from $900K, model homes Q4 2025) is Texas's first at-scale master-planned beach town since Cinnamon Shore. CRP airport 30 min.", bull:"Catalyst + airport + still-rising prices — the rare trifecta in 2026.", bear:"The 2024 SFH STR ban on the island pushes investors into condos/Whitecap only; Corpus's industrial brand caps the aesthetic ceiling."},
+    {n:"South Padre Island, TX", r:"US Gulf · composite 67", body:"Median ~$535K; Gulf-front condos from $300K; occupancy 47–53% (best in TX). Room receipts +24% YoY. SpaceX bought 54 acres on the island's north end in July 2026; Starbase incorporated as a city; second causeway in environmental clearance.", bull:"Three independent catalysts (SpaceX wealth, record tourism, causeway) — most in the entire screen.", bear:"9-hour drive makes it fly-only from Dallas; spring-break brand; condo insurance/assessment stack."},
+    {n:"Flagler Beach, FL", r:"US Atlantic · composite 65", body:"Median $425K (−13% = entry window), DOM 51, STR-legal, 35 min from a DFW nonstop (DAB). Height-capped Old-Florida main street with booming Palm Coast one bridge inland.", bull:"Cheapest character beach town in Florida with legal STRs and a Dallas nonstop.", bear:"A1A washes out in every major storm — erosion capex is a permanent tax; tiny commercial base."},
+    {n:"Puerto Escondido, Oaxaca", r:"Mexico · composite 70", body:"La Punta condos $150–350K; beachfront lot prices +125–160% in 5 years; 6–10% gross yields; 2024 highway + $200M airport expansion + first DFW nonstop (Dec 2025). Sewage/water infrastructure visibly straining — Tulum-2016 déjà vu.", bull:"The highest-torque setup anywhere in the screen, with catalysts still landing.", bear:"Comunal/agrarian title can void ownership entirely; anti-gentrification politics rising; STR supply +32%/yr."},
+    {n:"Puerto Morelos, Q.Roo", r:"Mexico · composite 68", body:"~$2,000/m² (15–25% below Playa del Carmen) with only 17 vertical projects vs Playa's 184 — squeezed between reef national park and mangrove. 25 min from CUN's 3x-daily DFW nonstops.", bull:"The risk-adjusted winner of the entire Mexican Caribbean: capped supply, mega-airport access, no boom-bust history.", bear:"The same low-key character that protects it caps ADR growth; mainland sargassum; Cancun-metro crime bleed."},
+    {n:"Loreto, BCS", r:"Mexico · composite 69", body:"Median ~$500K, +60% since 2021, 4-year-high transaction volume. TPC Danzante Bay golf, rebuilt 80-slip Marina Puerto Escondido, FONATUR-clean title, and AA's DFW nonstop going from 1x to 4x weekly.", bull:"The classic '10 years behind Cabo' institutional build-out with the cleanest title in Baja.", bear:"Worst STR fundamentals of the Baja three (31.5% occupancy, supply +30%); if AA cuts the seasonal E175, it's a 6-hour drive from anywhere."},
+    {n:"Mahahual / Costa Maya, Q.Roo", r:"Mexico · composite 62", body:"Royal Caribbean paid $292M for the cruise port and is spending ~$821M on 'Perfect Day Mexico' (open ~2027; 1M→4M projected passengers). Entry lots from $50K, homes $100–400K.", bull:"The clearest asymmetric land bet in the screen — confirmed capital, dated opening, land-value entry.", bear:"Cruise enclaves historically create little outside rental demand (CocoCay precedent); unlimited land supply; Cat-5 ground zero (Dean 2007); 4+ hr from CUN."},
+    {n:"Rincón / Aguadilla / Isabela, PR", r:"Caribbean · composite 64", body:"Median ~$385K, ~7.4% gross yields, 50% occupancy; luxury prints +6–14% YoY; Act 60 extended to 2055; BQN terminal expansion bid opened July 2026 with Avelo routes starting.", bull:"US title, US courts, conventional/FHA financing, no passport — international upside on domestic rails.", bear:"The grid blacked out island-wide twice in four months — solar+battery is $25–40K of mandatory capex; hurricane/quake corridor; STR revenue already flat."},
+    {n:"Ambergris Caye, Belize", r:"Caribbean · composite 73", body:"2BR beach-adjacent $420–600K; national occupancy 68–71%; BTB-licensed STR regime (9% tax); fee-simple English-law title with title insurance available; Six Senses under construction.", bull:"Best access-adjusted international market: ~6 hrs door-to-door, no fideicomiso, no translation risk.", bear:"Priced like the next Tulum already (value 5/10); net yields 2–3% after management; Secret Beach lot glut will shadow resale for years."},
+    {n:"Las Terrenas, DR", r:"Caribbean · composite 63", body:"Median transaction ~$290K; +8–12%/yr; Marriott's Donoma (Nov 2025) is the first international flag; CONFOTUR gives 15-yr property-tax exemption; Samaná is the DR's safest province.", bull:"The cleanest 'Tulum 2012' analog — and a single US route into El Catey (30 min away) would re-rate it overnight.", bear:"11–13 hours door-to-door from Dallas today; Euro-seasonal 32–42% occupancy; cash-only; Septentrional fault + hurricane tail largely uninsured."}
+  ];
+  document.getElementById('deepdives').innerHTML = dd.map(d=>`
+    <div class="deep"><h3>${d.n}</h3><div class="region">${d.r}</div>
+    <p>${d.body}</p>
+    <p class="bb"><span class="bull"><b>Bull:</b></span> ${d.bull}</p>
+    <p class="bb"><span class="bear"><b>Bear:</b></span> ${d.bear}</p></div>`).join("");
+})();
+
+// ---------- MAP ----------
+(function(){
+  const map = L.map('map', {scrollWheelZoom:false}).setView([25.5,-92], 4);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 18, attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(map);
+  const tierColor = w => w>=70 ? '#0d366b' : w>=64 ? '#1c5cab' : w>=56 ? '#3987e5' : '#9ec5f4';
+  TOWNS.forEach(t=>{
+    const w=Math.round(W(t)), pb=pBand(t);
+    const isB=!!t.benchmark;
+    const mk = L.circleMarker([t.lat,t.lng], {
+      radius: isB ? 8 : 7,
+      color: isB ? '#eb6834' : '#ffffff',
+      weight: 2,
+      fillColor: isB ? 'transparent' : tierColor(w),
+      fillOpacity: isB ? 0 : 0.95
+    }).addTo(map);
+    const scoreRow = isB ? `<i>Benchmark — already boomed</i>` :
+      `Composite <b>${w}/100</b> · P(boom): <b>${pb.label}</b><br>Access ${t.a} · Value ${t.v} · Momentum ${t.m} · Catalysts ${t.c} · Risk ${t.r}`;
+    mk.bindPopup(`<b>${t.name}</b> (${t.st})<br><span style="color:#777">${t.region}</span><br>${scoreRow}<br>Entry: ${t.price||"—"} · Travel: ${t.access||"—"}<br><br>${t.note||""}`);
+  });
+})();
+</script>
+</body>
+</html>
